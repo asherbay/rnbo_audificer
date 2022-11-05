@@ -6,7 +6,7 @@ import right from '../images/right.png'
 import left from '../images/left.png'
 
 function Matrix(props) {
-  const {modules} = props
+  const {modules, context} = props
 
   
 
@@ -25,11 +25,11 @@ function Matrix(props) {
     return modules.map((m, i)=>{
       let key = index + ", " + i
         if(i===index){
-            return (<Cell key={key}>{m.name}</Cell>) 
+            return (<Cell context={context} key={key}>{m.name}</Cell>) 
         } else if(i===0 && index!==0){
-            return <Cell key={key}/>
+            return <Cell context={context} key={key}/>
         } else {
-            return (<Send key={key} direction={i<index ? 'right' : 'left'} from={m} to={mod}/>)
+            return (<Send context={context} key={key} direction={i<index ? 'right' : 'left'} from={m} to={mod}/>)
         }
     })
   }
@@ -46,31 +46,37 @@ function Matrix(props) {
 export default Matrix
 
 export const Send = (props) => {
-  const {direction, from, to} = props
+  const {direction, from, to, context} = props
   const [enabled, setEnabled] = useState(false)
   const [level, setLevel] = useState(0.)
-  const [sendParam, setSendParam] = useState(null)
+  const [sendNode, setSendNode] = useState(null)
 
-  // useEffect(()=>{
-  //   if(enabled && !sendParam){
-  //     setSendParam(audio.addSend(from, to))
-  //   }
-  // }, [enabled])
+  useEffect(()=>{
+    if(enabled){
+      setSendNode((from.sendTo(to)).node)
+    }
+  }, [enabled])
 
   const slide = (e) => {
     if(!enabled){
       setEnabled(true)
+    } else {
+      if(sendNode!=null){
+        sendNode.gain.linearRampToValueAtTime(e.target.value / 100., context.currentTime+0.2)
+      }
     }
-    setLevel(e.target.value)
-    if(sendParam){
-      sendParam.toneObject.gain.value = e.target.value / 100.
-      // console.log('send set to:', sendParam.toneObject.gain.value )
-    }
+
+    // setLevel(e.target.value)
+    // if(sendParam){
+    //   sendParam.toneObject.gain.value = e.target.value / 100.
+    //   // console.log('send set to:', sendParam.toneObject.gain.value )
+    // }
+
   }
 
   return (
     <Cell>
-      <SendSlider enabled={enabled} type='range' direction={direction} onChange={slide} value={level}/>
+      <SendSlider enabled={enabled} type='range' direction={direction} onChange={slide}/>
     </Cell> //{direction==="left" ? "<" : ">"}
   )
 }

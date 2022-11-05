@@ -25,6 +25,14 @@ function App() {
     return count
   }
 
+  class Send {
+    constructor(source, target){
+      this.source = source
+      this.target = target
+      this.node = context.createGain()
+    }
+  }
+
   class AudioModule {
     constructor(type){
       this.type = type
@@ -33,6 +41,30 @@ function App() {
       this.deviceJSON = require('./patchers/'+type+'.export.json')
       // this.deviceURL = (1, eval)(type)
       this.device = null
+      this.sends = []
+    }
+
+    sendTo(targetModule){
+      let send = new Send(this, targetModule)
+      if(this.device!=null){
+        this.device.node.connect(send.node)
+      }
+      if(send && targetModule.device!=null){
+        send.node.connect(targetModule.device.node)
+        return send
+      }
+      
+    }
+
+    get receives(){
+      // get all sends targeting this module
+      let arr = []
+      // audioModules.forEach((m)=>{
+      //   if(m.){
+
+      //   }
+      // })
+      return arr
     }
   }
 
@@ -76,7 +108,7 @@ function App() {
     }
     //connect
     outputDevice.device.node.connect(outputNode)
-    testDevice.device.node.connect(outputDevice.device.node)
+    // testDevice.device.node.connect(outputDevice.device.node)
   }
   
   const startAudio = () => {
@@ -87,7 +119,7 @@ function App() {
 
   return (
     <div style={{width: "100vw", height: "100vh"}} onClick={startAudio}>
-      <Matrix modules={audioModules}/>
+      <Matrix modules={audioModules} context={context}/>
     </div>
   );
 }
