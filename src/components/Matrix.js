@@ -4,9 +4,10 @@ import rightOff from '../images/rightOff.png'
 import leftOff from '../images/leftOff.png'
 import right from '../images/right.png'
 import left from '../images/left.png'
+// import RNBO from '@rnbo/js'
 
 function Matrix(props) {
-  const {modules, context} = props
+  const {modules, context, rnbo} = props
 
   
 
@@ -29,7 +30,7 @@ function Matrix(props) {
         } else if(i===0 && index!==0){
             return <Cell context={context} key={key}/>
         } else {
-            return (<Send context={context} key={key} direction={i<index ? 'right' : 'left'} from={m} to={mod}/>)
+            return (<Send rnbo={rnbo} context={context} key={key} direction={i<index ? 'right' : 'left'} from={m} to={mod}/>)
         }
     })
   }
@@ -46,32 +47,37 @@ function Matrix(props) {
 export default Matrix
 
 export const Send = (props) => {
-  const {direction, from, to, context} = props
+  const {direction, from, to, context, rnbo} = props
   const [enabled, setEnabled] = useState(false)
   const [level, setLevel] = useState(0.)
-  const [sendNode, setSendNode] = useState(null)
+  const [sendDevice, setSendDevice] = useState(null)
 
   useEffect(()=>{
-    if(enabled){
-      setSendNode((from.sendTo(to)).node)
+    const getDev = async () => {
+      if(enabled){
+        let dev = await from.sendTo(to)
+        console.log('dev ', dev)
+        setSendDevice(dev.device)
+        //may need to add await
+      }
     }
+    getDev()
   }, [enabled])
 
+  // useEffect(()=>{
+  //     console.log('sendDevice: ', sendDevice)
+  // }, [sendDevice])
+
   const slide = (e) => {
+    let val = (direction=="right" ? e.target.value / 100.0 : 1.0 - e.target.value / 100.0)
     if(!enabled){
       setEnabled(true)
     } else {
-      if(sendNode!=null){
-        sendNode.gain.linearRampToValueAtTime(e.target.value / 100., context.currentTime+0.2)
+      if(sendDevice!=null){
+        const setVal = new rnbo.MessageEvent(rnbo.TimeNow, "in2", [ val ]);
+        sendDevice.scheduleEvent(setVal);
       }
     }
-
-    // setLevel(e.target.value)
-    // if(sendParam){
-    //   sendParam.toneObject.gain.value = e.target.value / 100.
-    //   // console.log('send set to:', sendParam.toneObject.gain.value )
-    // }
-
   }
 
   return (

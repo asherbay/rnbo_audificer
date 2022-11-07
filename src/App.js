@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import * as Tone from 'tone'
 import RNBO from '@rnbo/js'
-
+import styled from 'styled-components'
 import Matrix from './components/Matrix'
 
 
@@ -10,11 +10,17 @@ import Matrix from './components/Matrix'
 import require from 'requirejs'
 
 function App() {
+
   let context
   let outputNode
   let audioModules = [
 
   ]
+  // const [audioModules, setAudioModules] = useState([])
+  // useEffect(()=>{
+  //   setup()
+  // })
+
   const countModuleType = (type) => {
     let count = 0
     audioModules.forEach((mod)=>{
@@ -29,7 +35,9 @@ function App() {
     constructor(source, target){
       this.source = source
       this.target = target
-      this.node = context.createGain()
+      // this.node = context.createGain()
+      this.deviceJSON = require('./patchers/AudioSend.export.json')
+      this.device = null
     }
   }
 
@@ -37,20 +45,20 @@ function App() {
     constructor(type){
       this.type = type
       this.name = type+(countModuleType(type) + 1)
-      this.deviceURL = './patchers/'+type+'.export.json'
       this.deviceJSON = require('./patchers/'+type+'.export.json')
-      // this.deviceURL = (1, eval)(type)
       this.device = null
       this.sends = []
     }
 
-    sendTo(targetModule){
+    async sendTo(targetModule){
       let send = new Send(this, targetModule)
+      send.device = await jsonToDevice(send.deviceJSON)
       if(this.device!=null){
-        this.device.node.connect(send.node)
+        this.device.node.connect(send.device.node)
       }
       if(send && targetModule.device!=null){
-        send.node.connect(targetModule.device.node)
+        send.device.node.connect(targetModule.device.node)
+        this.sends.push(send)
         return send
       }
       
@@ -115,11 +123,15 @@ function App() {
     context.resume()
   }
 
-  setup()
+   setup()
 
   return (
     <div style={{width: "100vw", height: "100vh"}} onClick={startAudio}>
-      <Matrix modules={audioModules} context={context}/>
+      <Menu>
+        <span>Add: </span>
+        <AddModule onClick={()=>{audioModules.push(new AudioModule("TestTone"))}}>TestTone</AddModule>
+      </Menu>
+      <Matrix modules={audioModules} context={context} rnbo={RNBO}/>
     </div>
   );
 }
@@ -127,3 +139,17 @@ function App() {
 
 
 export default App;
+
+const AddModule = styled.span`
+    border: 1px solid black;
+    width: 50px;
+    &:hover{
+        cursor: pointer
+    }
+`
+
+const Menu = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+`
