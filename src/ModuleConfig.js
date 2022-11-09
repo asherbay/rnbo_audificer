@@ -1,27 +1,25 @@
-import {useEffect, useState} from 'react'
-import * as Tone from 'tone'
-import RNBO from '@rnbo/js'
+import React, {useState, useEffect} from 'react'
 import styled from 'styled-components'
-import Matrix from './components/Matrix'
-
-
-//import AudioOut from './patchers/AudioOut.export.json'
-
+import AudioNetwork from './AudioNetwork'
+// import AudioModule from './AudioNetwork'
+import RNBO from '@rnbo/js'
 import require from 'requirejs'
 
-function App() {
 
-  let context
-  let outputNode
-  let audioModules = [
+const ModuleConfig = () => {
+    const [audioModules, setAudioModules] = useState([])
+    const [context, setContext] = useState(null)
 
-  ]
-  // const [audioModules, setAudioModules] = useState([])
-  // useEffect(()=>{
-  //   setup()
-  // })
 
-  const countModuleType = (type) => {
+    useEffect(()=>{
+        if(!context){
+            let WAContext = window.AudioContext || window.webkitAudioContext;
+            setContext(new WAContext())
+            setAudioModules([])
+        }
+    })
+
+    const countModuleType = (type) => {
     let count = 0
     audioModules.forEach((mod)=>{
       if(mod.type===type){
@@ -38,6 +36,7 @@ function App() {
       // this.node = context.createGain()
       this.deviceJSON = require('./patchers/AudioSend.export.json')
       this.device = null
+      this.context = null
     }
   }
 
@@ -47,12 +46,14 @@ function App() {
       this.name = type+(countModuleType(type) + 1)
       this.deviceJSON = require('./patchers/'+type+'.export.json')
       this.device = null
+      this.context = null
       this.sends = []
     }
 
     async sendTo(targetModule){
       let send = new Send(this, targetModule)
-      send.device = await jsonToDevice(send.deviceJSON)
+      send.context = targetModule.context
+      send.device = await jsonToDevice(send.deviceJSON, context)
       if(this.device!=null){
         this.device.node.connect(send.device.node)
       }
@@ -76,7 +77,7 @@ function App() {
     }
   }
 
-  const jsonToDevice = async (json) => {
+  const jsonToDevice = async (json, context) => {
     let response, patcher, device;   
     try {
         patcher = await json
@@ -95,50 +96,19 @@ function App() {
     return device
   }
 
-  const setup = async () => {
-    let WAContext = window.AudioContext || window.webkitAudioContext;
-    context = new WAContext();
-
-    // Create gain node and connect it to audio output
-    outputNode = context.createGain() //new Tone.Gain(1.0).toDestination();
-    outputNode.connect(context.destination);
-    let outputDevice = new AudioModule("AudioOut")
-    audioModules.push(outputDevice)
-
-    let testDevice = new AudioModule("TestTone")
-    audioModules.push(testDevice)
-
-    //create rnbo device for each audioModule
-    for (let mod of audioModules){
-      console.log(mod.name)
-      mod.device = await jsonToDevice(mod.deviceJSON)
-      console.log("device param: ", mod.device.parameters[0].name)
-    }
-    //connect
-    outputDevice.device.node.connect(outputNode)
-    // testDevice.device.node.connect(outputDevice.device.node)
-  }
-  
-  const startAudio = () => {
-    context.resume()
-  }
-
-   setup()
-
-  return (
-    <div style={{width: "100vw", height: "100vh"}} onClick={startAudio}>
-      <Menu>
-        <span>Add: </span>
-        <AddModule onClick={()=>{audioModules.push(new AudioModule("TestTone"))}}>TestTone</AddModule>
-      </Menu>
-      <Matrix modules={audioModules} context={context} rnbo={RNBO}/>
-    </div>
-  );
+    return (
+        <div>
+            <Menu>
+                <span>Add: </span>
+                <AddModule onClick={()=>{setAudioModules([...audioModules, new AudioModule("TestTone")])}}>TestTone</AddModule>
+            </Menu>
+            {context && <AudioNetwork context={context} audioModules={audioModules} setAudioModules={setAudioModules}/>}
+            
+        </div>
+    )
 }
 
-
-
-export default App;
+export default ModuleConfig
 
 const AddModule = styled.span`
     border: 1px solid black;
