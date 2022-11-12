@@ -11,9 +11,17 @@ function Matrix(props) {
 
   const testNote = (e, op) => {
     console.log("note source: ", op)
-    let amp = op.device.parameters.find((p)=>p.name=="amp")
-    let val = (amp.value>0.0 ? 0.0 : 1.0)
-    amp.value = val
+    // let amp = op.device.parameters.find((p)=>p.name=="amp")
+    // let val = (amp.value>0.0 ? 0.0 : 1.0)
+    // amp.value = val
+
+    const event = new rnbo.MessageEvent(rnbo.TimeNow, "amp", [1., 1000, 0.]);
+    op.device.scheduleEvent(event);
+  }
+
+  const testPitchChange = (e, op) => {
+    let pitchParam = op.device.parameters.find((p)=>p.name=="pitch")
+    pitchParam.value = e.target.value
   }
 
   const renderModules = () => {
@@ -34,7 +42,12 @@ function Matrix(props) {
             return (
               <Cell context={context} key={key}>
                 {m.name}
-                {m.type=="Op" && <button onClick={(e)=>{testNote(e, m)}}>note</button>}
+                {m.type=="Op" && 
+                  <span>
+                    <button onClick={(e)=>{testNote(e, m)}}>note</button>
+                    <input type="number" min="0" max="127" onChange={(e)=>{testPitchChange(e, m)}}/>
+                  </span>
+                }
               </Cell>) 
         } else if(i===0 && index!==0){
             return <Cell context={context} key={key}/>
