@@ -4,10 +4,13 @@ import './index.css';
 import AudioNetwork from './AudioNetwork';
 import reportWebVitals from './reportWebVitals';
 import ModuleConfig from './ModuleConfig'
+import MatrixConfig from './MatrixConfig'
+import App from './App'
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   //<React.StrictMode>
-  <ModuleConfig/>
+  <App/>
   //</React.StrictMode>
 );
 

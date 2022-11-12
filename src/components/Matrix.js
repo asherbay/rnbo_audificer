@@ -9,7 +9,12 @@ import left from '../images/left.png'
 function Matrix(props) {
   const {modules, context, rnbo} = props
 
-  
+  const testNote = (e, op) => {
+    console.log("note source: ", op)
+    let amp = op.device.parameters.find((p)=>p.name=="amp")
+    let val = (amp.value>0.0 ? 0.0 : 1.0)
+    amp.value = val
+  }
 
   const renderModules = () => {
     console.log('numMOds: ', modules.length)
@@ -26,7 +31,11 @@ function Matrix(props) {
     return modules.map((m, i)=>{
       let key = index + ", " + i
         if(i===index){
-            return (<Cell context={context} key={key}>{m.name}</Cell>) 
+            return (
+              <Cell context={context} key={key}>
+                {m.name}
+                {m.type=="Op" && <button onClick={(e)=>{testNote(e, m)}}>note</button>}
+              </Cell>) 
         } else if(i===0 && index!==0){
             return <Cell context={context} key={key}/>
         } else {
@@ -35,6 +44,7 @@ function Matrix(props) {
     })
   }
 
+  console.log('mtx render with mods: ', modules)
   return (
     <Grid>
       <tbody>
@@ -56,7 +66,9 @@ export const Send = (props) => {
     const getDev = async () => {
       if(enabled){
         let dev = await from.sendTo(to)
-        console.log('dev ', dev)
+        // console.log('dev ', dev)
+        console.log('send source: ', from)
+
         setSendDevice(dev.device)
         //may need to add await
       }
