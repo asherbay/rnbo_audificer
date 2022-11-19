@@ -6,46 +6,68 @@ import RNBO from '@rnbo/js'
 import require from 'requirejs'
 
 const MatrixConfig = (props) => {
-    const {setSelAudioModules} = props
+    const {setSelAudioModules, setSelControlModules} = props
     // const audioModuleTypes = ["Op", "TestTone", "Filter", "Comb"]
     const [audioModuleCount, setAudioModuleCount] = useState({"Op": 0, "TestTone": 0, "Filter": 0, "Comb": 0})
+    const [controlModuleCount, setControlModuleCount] = useState({"TestEnv": 0, "Trigger": 0, "Env": 0, "Pulse": 0, "Stepper": 0})
 
 
-    const setQuant = (e) => {
+    const setQuant = (e, list, setter) => {
       console.log(e)
       let type = e.target.name
-      let newCount = audioModuleCount
+      let newCount = list
       newCount[type] = e.target.value
-      setAudioModuleCount(newCount)
+      setter(newCount)
     }
 
     const addGroup = () => {
-      let selMods = []
-      Object.keys(audioModuleCount).forEach((type)=>{
+      let selAudioMods = []
+      Object.keys(audioModuleCount).forEach((aType)=>{
         let i = 0
-        while (i<audioModuleCount[type]){
-          selMods.push(type)
+        while (i<audioModuleCount[aType]){
+          selAudioMods.push(aType)
           i++
         }
       })
-      console.log('selMods: ', selMods)
-      setSelAudioModules(selMods)
+      let selControlMods = []
+      Object.keys(controlModuleCount).forEach((cType)=>{
+        let i = 0
+        while (i<controlModuleCount[cType]){
+          selControlMods.push(cType)
+          i++
+        }
+      })
+      // console.log('selMods: ', selAudioMods)
+      setSelAudioModules(selAudioMods)
+      setSelControlModules(selControlMods)
+
     }
 
-    const renderOptions = () => {
+    const renderAudioOptions = () => {
         return Object.keys(audioModuleCount).map((type)=>{
           return (
             <Quantity> 
               <span>{type}</span>
-              <input style={{width: "30px"}} type="number" min="0" name={type} onChange={setQuant}/>
+              <input style={{width: "30px"}} type="number" min="0" name={type} onChange={(e)=>{setQuant(e, audioModuleCount, setAudioModuleCount)}}/>
             </Quantity>)
-          
         })
     }
+
+    const renderControlOptions = () => {
+      return Object.keys(controlModuleCount).map((type)=>{
+        return (
+          <Quantity> 
+            <span>{type}</span>
+            <input style={{width: "30px"}} type="number" min="0" name={type} onChange={(e)=>{setQuant(e, controlModuleCount, setControlModuleCount)}}/>
+          </Quantity>)
+      })
+  }
     
   return (
     <Box>
-      {renderOptions()}
+      {renderAudioOptions()}
+      <hr style={{width: "100%"}}/>
+      {renderControlOptions()}
       <button style={{margin: "5px"}} onClick={addGroup}>add</button>
     </Box>
   )

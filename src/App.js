@@ -5,13 +5,15 @@ import AudioNetwork from './AudioNetwork'
 
 const App = () => {
     const [selAudioModules, setSelAudioModules] = useState([])
+    const [selControlModules, setSelControlModules] = useState([])
+
 
   return (
     <div>
-        {selAudioModules.length>0 ? 
-            <AudioNetwork selAudioModules={selAudioModules}/> 
+        {(selAudioModules.length>0 && selControlModules.length>0) ?  
+            <AudioNetwork selAudioModules={selAudioModules} selControlModules={selControlModules}/> 
         :
-            <MatrixConfig setSelAudioModules={setSelAudioModules}/>
+            <MatrixConfig setSelAudioModules={setSelAudioModules} setSelControlModules={setSelControlModules}/>
         }
     </div>
   )

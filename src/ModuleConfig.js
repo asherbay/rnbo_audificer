@@ -8,6 +8,7 @@ import require from 'requirejs'
 
 const ModuleConfig = () => {
     const [audioModules, setAudioModules] = useState([])
+    const [controlModules, setControlModules] = useState([])
     const [context, setContext] = useState(null)
 
 
