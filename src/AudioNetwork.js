@@ -5,6 +5,8 @@ import styled from 'styled-components'
 import Matrix from './components/Matrix'
 import require from 'requirejs'
 import ControlPanel from './ControlPanel'
+import './App.css'
+
 /*
   NO STATE 
     - modules and context both stored in variables
@@ -58,8 +60,8 @@ const AudioNetwork = (props) => {
 
   class Receive {
     constructor(sourceCtlOut, targetCtlIn){
-      this.source = source
-      this.target = target
+      this.source = sourceCtlOut
+      this.target = targetCtlIn
       this.deviceJSON = require('./patchers/ModReceiver.export.json')
       this.device = null
     }
@@ -104,13 +106,20 @@ const AudioNetwork = (props) => {
     }
   }
 
+  
+
   class ControlOutput {
     constructor(module, type, name, outlet){
       this.type = type
       this.name = name
       this.outlet = outlet
       this.module = module
+      // this.selector = <SourceSelector onClick={(e)=>{this.selCtlSource}}/>
     }
+    selCtlSource(){
+      return this
+    }
+    
     
 
   }
@@ -133,13 +142,16 @@ const AudioNetwork = (props) => {
 
       //connect receiver to module at inlet#
       if(receive.device!=null){
-        receive.device.node.connect(this.module.device.node, 0, this.inlet)
+        console.log('receive device added')
+        receive.device.node.connect(this.module.device.node, 0, this.inlet-1)
+        this.receives.push(receive)
       }
 
       //connect source to receiver from outlet# 
       if(sourceCtlOut.device!=null){
-        sourceCtlOut.device.node.connect(receive.device.node, sourceCtlOut.outlet)
-        this.receives.push(receive)
+        sourceCtlOut.device.node.connect(receive.device.node, sourceCtlOut.outlet-1)
+        console.log('source connected to receiver')
+        
         return receive
       }
 
@@ -209,13 +221,25 @@ const AudioNetwork = (props) => {
     for (let mod of audioModules){
       mod.device = await jsonToDevice(mod.deviceJSON)
       console.log('device added for: ', mod.name)
+      let modIns = mod.ctlIO.inputs
+      let modOuts = mod.ctlIO.outputs
       if(mod.type=="Op"){
-        mod.ctlIO.inputs.mod = [new ControlInput(mod, 'mod', 'amp', 1, [0, 1])]
-        mod.ctlIO.inputs.mod = [new ControlInput(mod, 'mod', 'fb', 1, [0, 1])]
+        mod.ctlIO.inputs.mod.push(new ControlInput(mod, 'mod', 'amp', 1, [0, 1]))
+        mod.ctlIO.inputs.mod.push(new ControlInput(mod, 'mod', 'fb', 1, [0, 1]))
 
-      } else if(mod.type=="Env"){
-        mod.ctlIO.outputs.trig= [new ControlOutput(mod, 'trig', 'endFlag', 2)]
-        mod.ctlIO.inputs.trig = [new ControlInput(mod, 'trig', 'trigger', 1)]
+      } 
+      //add mod io to global io object
+      if(mod.ctlIO.inputs.trig.length>0) {
+        ctlIO.inputs.trig = ctlIO.inputs.trig.concat(mod.ctlIO.inputs.trig)
+      }
+      if(mod.ctlIO.inputs.mod.length>0) {
+        ctlIO.inputs.mod = ctlIO.inputs.mod.concat(mod.ctlIO.inputs.mod)
+      }
+      if(mod.ctlIO.outputs.trig.length>0) {
+        ctlIO.outputs.trig = ctlIO.outputs.trig.concat(mod.ctlIO.outputs.trig)
+      }
+      if(mod.ctlIO.outputs.mod.length>0) {
+        ctlIO.outputs.mod = ctlIO.outputs.mod.concat(mod.ctlIO.outputs.mod)
       }
 
     }
@@ -228,31 +252,35 @@ const AudioNetwork = (props) => {
       //in this^ case mod means module, not modulation like below
 
       if(mod.type=="Trigger"){
-        modOuts.trig = [new ControlOutput(mod, 'trig', 'out', 1)]
+        mod.ctlIO.outputs.trig.push(new ControlOutput(mod, 'trig', 'out', 1))
       } else if(mod.type=="Env"){
-        modOuts.trig= [new ControlOutput(mod, 'trig', 'endFlag', 2)]
-        modIns.trig = [new ControlInput(mod, 'trig', 'trigger', 1)]
+        mod.ctlIO.outputs.trig.push(new ControlOutput(mod, 'trig', 'endFlag', 2))
+        mod.ctlIO.inputs.trig.push(new ControlInput(mod, 'trig', 'trigger', 1))
       } else if(mod.type=="TestEnv"){
-        modOuts.mod= [new ControlOutput(mod, 'mod', 'out', 2)]
-        modIns.trig = [new ControlInput(mod, 'trig', 'trigger', 1)]
+        mod.ctlIO.outputs.mod.push(new ControlOutput(mod, 'mod', 'out', 2))
+        mod.ctlIO.inputs.trig.push(new ControlInput(mod, 'trig', 'trigger', 1))
       }
       else {
 
       }
+
+      modIns = mod.ctlIO.inputs
+      modOuts = mod.ctlIO.outputs
       //add mod io to global io object
-      if(modIns.trig.length>0) {
-        ctlIO.inputs.trig = [...ctlIO.inputs.trig, modIns.trig]
+      if(mod.ctlIO.inputs.trig.length>0) {
+        ctlIO.inputs.trig = ctlIO.inputs.trig.concat(mod.ctlIO.inputs.trig)
       }
-      if(modIns.mod.length>0) {
-        ctlIO.inputs.mod = [...ctlIO.inputs.mod, modIns.mod]
+      if(mod.ctlIO.inputs.mod.length>0) {
+        ctlIO.inputs.mod = ctlIO.inputs.mod.concat(mod.ctlIO.inputs.mod)
       }
-      if(modOuts.trig.length>0) {
-        ctlIO.outputs.trig = [...ctlIO.outputs.trig, modOuts.trig]
+      if(mod.ctlIO.outputs.trig.length>0) {
+        ctlIO.outputs.trig = ctlIO.outputs.trig.concat(mod.ctlIO.outputs.trig)
       }
-      if(modOuts.mod.length>0) {
-        ctlIO.outputs.mod = [...ctlIO.outputs.mod, modOuts.mod]
+      if(mod.ctlIO.outputs.mod.length>0) {
+        ctlIO.outputs.mod = ctlIO.outputs.mod.concat(mod.ctlIO.outputs.mod)
       }
-      post('modIns and modOuts:', modIns, modOuts)
+      
+      post(mod.ctlIO.inputs, mod.ctlIO.outputs)
     }
 
     //add ControlOutputs to every ControlModule (specific to the module type)
@@ -303,15 +331,19 @@ const AudioNetwork = (props) => {
 
 export default AudioNetwork;
 
+
 export const SourceSelector = (props) => {
-  const {ctlOut}
+  const {ctlOutput} = props
   const [enabled, setEnabled] = useState(false)
-  
+
   return (
-    (enabled ? 
-      <button onClick={}>sel</button>
-    :
-    )
-    <div>ControlPanel</div>
+    <span>
+      
+      {enabled ?
+        <button style={{backgroundColor: "red", color: "white"}} onClick={ctlOutput.selCtlSource}>{ctlOutput.name}</button>
+      :
+        ctlOutput.name
+      }
+    </span>
   )
 }

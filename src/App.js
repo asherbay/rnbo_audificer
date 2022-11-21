@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react'
 import styled from 'styled-components'
 import MatrixConfig from './MatrixConfig'
 import AudioNetwork from './AudioNetwork'
-
+import './App.css'
 const App = () => {
     const [selAudioModules, setSelAudioModules] = useState([])
     const [selControlModules, setSelControlModules] = useState([])

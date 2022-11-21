@@ -3,6 +3,8 @@ import * as Tone from 'tone'
 import styled from 'styled-components'
 import Matrix from './components/Matrix'
 import require from 'requirejs'
+import './App.css'
+
 
 const ControlPanel = (props) => {
   const {audioModules, controlModules, context, rnbo} = props
@@ -37,15 +39,8 @@ const ControlPanel = (props) => {
 
 export default ControlPanel
 
-const SourceSelector = (props) => {
-  const [enabled, setEnabled] = useState(false)
-  
-  return (
-    <div>ControlPanel</div>
-  )
-}
 
-export default ControlPanel
+
 
 const Panel = styled.span`
     display: flex;

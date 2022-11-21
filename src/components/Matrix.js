@@ -5,14 +5,16 @@ import leftOff from '../images/leftOff.png'
 import right from '../images/right.png'
 import left from '../images/left.png'
 // import RNBO from '@rnbo/js'
+import '../App.css'
+
 
 function Matrix(props) {
   const {modules, context, rnbo, controlModules, ctlIO} = props
 
-  
+  // console.log('ctlIO: ', ctlIO)
 
   const renderModules = () => {
-    console.log('numMOds: ', modules.length)
+    // console.log('numMOds: ', modules.length)
     return modules.map((m, i)=>{
       return (
         <tr key={i} id={i}>
@@ -59,20 +61,74 @@ function Matrix(props) {
 
 export default Matrix
 
+export const HoverDropdown = (props) => {
+  const {items, action, ctlInput} = props
+  const [expanded, setExpanded] = useState(false)
+
+  // console.log('items: ', items)
+
+  const select = (item) => {
+    
+    setExpanded(false)
+    action(item)
+  }
+
+  const expand = () => {
+    if(!expanded){
+      setExpanded(true)
+    }
+  }
+  const fold = () => {
+    if(expanded){
+      setExpanded(false)
+    }
+  }
+
+  const renderItems = () => {
+    // console.log('receives: ', ctlInput.receives)
+
+    return items.map((item, i)=>{
+      if(ctlInput.receives.length > 0){
+        let sources = ctlInput.receives.map((r)=>r.source)
+        if(sources.includes(item)){
+          return <div>{item.module.name + ": " + item.name} ✓</div>
+        }
+      }
+      return <div onClick={(e)=>{select(item)}}>{item.module.name + ": " + item.name}</div>
+    })
+  }
+  return (
+    <div onMouseEnter={expand}
+    onMouseLeave={fold} className="dropdown">
+      <button className="dropbtn">Dropdown</button>
+      {expanded &&
+      <div className="dropdown-content">
+        {renderItems()}
+      </div>
+      }
+    </div>)
+}
+
 export const NqParam = (props) => {
   //value, modSwitch, CtlReceiver (includes a ctlSend for each added mod source)
-  const {ctlInput, rnbo} = props
+  const {ctlInput, rnbo, ctlIO} = props
   const [modulated, setModulated] = useState(false)
-  const [modSources, setModSources] = useState([])
+  const [modSources, setModSources] = useState(ctlInput.receives)
+  const sourceOptions = ctlIO.outputs.mod//.map((sO)=>{return sO.name})
+
+  // console.log('sourceOptions:', ctlIO)
 
   const renderReceivers = () => {
-    return modSources.map((s)=>{
-
+    return modSources.map((s, i)=>{
+      let receiveObject = ctlInput.receives.find((r)=>r.source==s)
+      return <ModReceiver key={s.name} sourceObject={s} targetObject={ctlInput} receiveObject={receiveObject}/>
     })
   }
 
-  const addReceiver = () =>{
-
+  const addReceiver = async (item) =>{
+    // console.log('item: ', item)
+    await ctlInput.receiveFrom(item)
+    setModSources(ctlInput.receives)
   }
 
   const manualAdjust = (e) => {
@@ -83,8 +139,10 @@ export const NqParam = (props) => {
     <span>
       <button onClick={(e)=>{setModulated(!modulated)}}>{modulated ? "modulated" : "manual"}</button>
       {modulated ?
-        <button onClick={addReceiver}>add source</button>
-        renderReceivers()
+        <span>
+          <HoverDropdown items={sourceOptions} action={addReceiver} ctlInput={ctlInput}/>
+          {modSources.length>0 && renderReceivers()}
+        </span>
       :
         <input type="number" min={ctlInput.range[0]} max={ctlInput.range[1]} onChange={manualAdjust}/>
       }
@@ -93,13 +151,31 @@ export const NqParam = (props) => {
 
 }
 
-export const CtlReceiver = (props) => {
-  const {context, module, rnbo} = props
+export const ModReceiver = (props) => {
+  const {sourceObject, targetObject, receiveObject} = props
+  // const [min, setMin] = useState(object.device.parameters.find((p)=>p.name=="min"))
+  // const [max, setMax] = useState(object.device.parameters.find((p)=>p.name=="max"))
 
+  const getParam = (device, name) => {
+    return device.parameters.find((p)=>p.name==name)
+  }
+
+  const setVal = (e) => {
+    let param = getParam(receiveObject.device, e.target.name)
+    param.value = e.target.value
+  }
+
+  return (
+    <span>
+      {sourceObject.module.name + ": " + sourceObject.name}
+      <input type="number" name="outMin" value={getParam(receiveObject.device, "outMin")} onChange={setVal} min={targetObject.range[0]} max={targetObject.range[1]}/>
+      <input type="number" name="outMax" value={getParam(receiveObject.device, "outMax")} onChange={setVal} min={targetObject.range[0]} max={targetObject.range[1]}/>
+    </span>
+  )
 }
 
 export const Op = (props) => {
-  const {context, module, rnbo} = props
+  const {context, module, rnbo, ctlIO} = props
   const [expanded, setExpanded] = useState(false)
 
   const testNote = (e, op) => {
@@ -108,7 +184,7 @@ export const Op = (props) => {
   }
 
   const testParamChange = (e, op) => {
-    console.log('paramchange event: ', e)
+    // console.log('paramchange event: ', e)
     let param = op.device.parameters.find((p)=>p.name==e.target.name)
     param.value = e.target.value
   }
@@ -123,7 +199,7 @@ export const Op = (props) => {
   const renderNqParams = () => {
     return module.ctlIO.inputs.mod.map((nqP, i)=>{
       return (
-        <NqParam ctlInput={nqP} key={i} rnbo={rnbo}/>
+        <NqParam ctlIO={ctlIO} ctlInput={nqP} key={i} rnbo={rnbo} />
       )
     })
   }
@@ -131,7 +207,7 @@ export const Op = (props) => {
   return (
     <Cell context={context}>
       {module.name}
-      <button>{expanded ? "˅" : "˃"}</button>
+      <button onClick={(e)=>{setExpanded(!expanded)}}>{expanded ? "˅" : "˃"}</button>
       {expanded &&
         <span>
           <span>
@@ -161,7 +237,7 @@ export const Send = (props) => {
       if(enabled){
         let dev = await from.sendTo(to)
         // console.log('dev ', dev)
-        console.log('send source: ', from)
+        // console.log('send source: ', from)
 
         setSendDevice(dev.device)
         //may need to add await
