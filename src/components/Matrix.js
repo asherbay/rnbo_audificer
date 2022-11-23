@@ -88,19 +88,20 @@ export const HoverDropdown = (props) => {
     // console.log('receives: ', ctlInput.receives)
 
     return items.map((item, i)=>{
+      let address = item.module.name + ": " + item.name
       if(ctlInput.receives.length > 0){
         let sources = ctlInput.receives.map((r)=>r.source)
         if(sources.includes(item)){
-          return <div>{item.module.name + ": " + item.name} ✓</div>
+          return <div key={address}>{address} ✓</div>
         }
       }
-      return <div onClick={(e)=>{select(item)}}>{item.module.name + ": " + item.name}</div>
+      return <div key={address} onClick={(e)=>{select(item)}}>{address}</div>
     })
   }
   return (
     <div onMouseEnter={expand}
     onMouseLeave={fold} className="dropdown">
-      <button className="dropbtn">Dropdown</button>
+      <button className="dropbtn">add source</button>
       {expanded &&
       <div className="dropdown-content">
         {renderItems()}
@@ -113,22 +114,31 @@ export const NqParam = (props) => {
   //value, modSwitch, CtlReceiver (includes a ctlSend for each added mod source)
   const {ctlInput, rnbo, ctlIO} = props
   const [modulated, setModulated] = useState(false)
-  const [modSources, setModSources] = useState(ctlInput.receives)
+  const [modSources, setModSources] = useState([])
   const sourceOptions = ctlIO.outputs.mod//.map((sO)=>{return sO.name})
 
-  // console.log('sourceOptions:', ctlIO)
+
+  useEffect(()=>{
+    console.log('modSources:', modSources)
+  }, [modSources])
 
   const renderReceivers = () => {
+    console.log('renderREceivers')
     return modSources.map((s, i)=>{
       let receiveObject = ctlInput.receives.find((r)=>r.source==s)
-      return <ModReceiver key={s.name} sourceObject={s} targetObject={ctlInput} receiveObject={receiveObject}/>
+      let address = s.source.module.name + ": " + s.source.name
+     // return <div key={s.name}>receiver placeholder</div>
+     return <ModReceiver key={address} sourceCtlOut={s.source} address={address} targetCtlIn={ctlInput} receiveObject={s}/>
     })
   }
 
   const addReceiver = async (item) =>{
     // console.log('item: ', item)
-    await ctlInput.receiveFrom(item)
-    setModSources(ctlInput.receives)
+    let r = await ctlInput.receiveFrom(item)
+    let newArr = [...ctlInput.receives]
+    setModSources(newArr)
+    // setModSources([...modSources, r])
+
   }
 
   const manualAdjust = (e) => {
@@ -137,7 +147,7 @@ export const NqParam = (props) => {
   }
   return (
     <span>
-      <button onClick={(e)=>{setModulated(!modulated)}}>{modulated ? "modulated" : "manual"}</button>
+      <button onClick={(e)=>{setModulated(!modulated)}}>{modulated ? "~" : "-"}</button>
       {modulated ?
         <span>
           <HoverDropdown items={sourceOptions} action={addReceiver} ctlInput={ctlInput}/>
@@ -152,7 +162,8 @@ export const NqParam = (props) => {
 }
 
 export const ModReceiver = (props) => {
-  const {sourceObject, targetObject, receiveObject} = props
+  const {sourceCtlOut, targetCtlIn, receiveObject, address} = props
+  const [enabled, setEnabled] = useState(true)
   // const [min, setMin] = useState(object.device.parameters.find((p)=>p.name=="min"))
   // const [max, setMax] = useState(object.device.parameters.find((p)=>p.name=="max"))
 
@@ -164,12 +175,13 @@ export const ModReceiver = (props) => {
     let param = getParam(receiveObject.device, e.target.name)
     param.value = e.target.value
   }
-
+  console.log('receiver loaded')
   return (
     <span>
-      {sourceObject.module.name + ": " + sourceObject.name}
-      <input type="number" name="outMin" value={getParam(receiveObject.device, "outMin")} onChange={setVal} min={targetObject.range[0]} max={targetObject.range[1]}/>
-      <input type="number" name="outMax" value={getParam(receiveObject.device, "outMax")} onChange={setVal} min={targetObject.range[0]} max={targetObject.range[1]}/>
+      {address}
+      <input type="number" name="outMin" defaultValue={getParam(receiveObject.device, "outMin").value} onChange={setVal} min={targetCtlIn.range[0]} max={targetCtlIn.range[1]} step="0.05"/>
+      <input type="number" name="outMax" defaultValue={getParam(receiveObject.device, "outMax").value} onChange={setVal} min={targetCtlIn.range[0]} max={targetCtlIn.range[1]} step="0.05"/>
+      <button onClick={(e)=>{setEnabled(!enabled)}}>{enabled ? "☒" : "☐"}</button>
     </span>
   )
 }
@@ -198,8 +210,9 @@ export const Op = (props) => {
 
   const renderNqParams = () => {
     return module.ctlIO.inputs.mod.map((nqP, i)=>{
+      let address = nqP.module.name + ": " + nqP.name
       return (
-        <NqParam ctlIO={ctlIO} ctlInput={nqP} key={i} rnbo={rnbo} />
+        <NqParam ctlIO={ctlIO} ctlInput={nqP} key={address} rnbo={rnbo} />
       )
     })
   }
